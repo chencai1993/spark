@@ -73,4 +73,29 @@ object Utils {
   }
 
 
+
+  def getPs(args: Array[String],prex:String="--"):Map[String,List[String]]={
+    var params= Map[String,List[String]]()
+    var key = ""
+    for(item<-args){
+      if(item.length>=prex.length && prex==item.substring(0,prex.length)){
+        key = item.substring(prex.length)
+        params+=(key->List[String]())
+      }
+      else{
+        var value = params.get(key).get
+        value = value:+item
+        params+=(key->value)
+      }
+    }
+    params
+  }
+  def getParam(params:Map[String,List[String]],key:String):String={
+    var res = ""
+    res = if(params.contains(key)) params.get(key).get(0) else ""
+    res
+  }
+
+
+
 }

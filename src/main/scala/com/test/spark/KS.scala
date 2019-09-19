@@ -82,9 +82,11 @@ object KS {
     res
   }
   def main(args: Array[String]): Unit = {
-    val path = "scala_test"
+    val path = args(0)
     var df = Utils.read(path)
-    val col = Utils.tsCols("shaohua.inop.all.v01.score")
+
+    val col = Utils.tsCols(df.columns(5))
     var r = KS(df,col)
   }
+
 }

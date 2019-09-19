@@ -1,16 +1,31 @@
 package com.test.spark
-
 object Select {
   def main(args: Array[String]): Unit = {
     val spark = SparkEnv.getSession
-    val input = args(0)
-    val featurelist = args(1)
-    val out = args(2)
-    var df = Utils.read(spark,input)
-    val fealistdf = Utils.read(spark,featurelist)
-    var fl = fealistdf.select("feature_name").collect().toArray.map(line=>line(0).toString)
-    fl = Utils.tsCols(fl,".","#")
-    df = Utils.tsCols(df).select(fl.head,fl.tail: _*)
+    val ps = Utils.getPs(args)
+    val input = ps.get("input").get(0)
+    val out = ps.get("out").get(0)
+    var df = Utils.read(spark, input)
+    if (ps.contains("featurelist")) {
+      val featurelist = ps.get("featurelist").get(0)
+      val fealistdf = Utils.read(featurelist)
+      var fl = fealistdf.select("feature_name").collect().toArray.map(line => line(0).toString)
+      fl = Utils.tsCols(fl, ".", "#")
+      df = Utils.tsCols(df).select(fl.head, fl.tail: _*)
+    }
+    if(ps.contains("whitelist")){
+      val whitelist = ps.get("whitelist").get
+      df = df.filter(df("name").isin(whitelist.toArray:_*))
+    }
+    if(ps.contains("blacklist")){
+      val blacklist = ps.get("blacklist").get
+      df = df.filter(df("name").isin(blacklist.toArray:_*)===false)
+    }
+    if(ps.contains("sample")){
+      val sample_path = ps.get("sample").get(0)
+      val sample = Utils.read(sample_path)
+      df = Utils.join(df,sample,List(),"inner")
+    }
     df = Utils.rtsCols(df)
     Utils.write(df,out)
   }
