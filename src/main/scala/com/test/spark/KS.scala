@@ -44,7 +44,8 @@ object KS {
     res:+=getIv(seq_good,seq_bad,total_good+none_total_good,total_bad+none_total_bad)
     res.toArray
   }
-  def KS(df:DataFrame,col:String):List[Array[Double]]={
+  def KS(df:DataFrame,feature_name:String):List[Array[Double]]={
+    val col = Utils.tsCols(feature_name)
     var map = Map[String,Any]()
     var data = Utils.tsCols(df)
     var colName = Utils.tsCols(col)
@@ -82,12 +83,11 @@ object KS {
     res
   }
   def main(args: Array[String]): Unit = {
-    val path = args(0)
+    val path = "scala_test" //args(0)
     var df = Utils.read(path)
-    for(col<-df.columns.drop(5)) {
-      val col = Utils.tsCols(df.columns(5))
-      var r = KS(df, col)
-    }
+    val columns = df.columns.drop(5)
+    columns.toArray.map(line=>{KS(df,line)})
+
   }
 
 }
