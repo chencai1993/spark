@@ -50,6 +50,9 @@ object Utils {
   def commonCols(leftDf: DataFrame, rightDf: DataFrame):List[String]={
     (leftDf.columns.toSet & rightDf.columns.toSet).toList
   }
+  def commonColsNoName(leftDf: DataFrame, rightDf: DataFrame):List[String]={
+    ((leftDf.columns.toSet & rightDf.columns.toSet) &~ Set("name","idcard","phone","loan_dt","label","uniq_id")).toList
+  }
   def join(leftDf: DataFrame, rightDf: DataFrame,on: List[String]=List[String](),joinType:String): DataFrame = {
     val usingCols = if(on.nonEmpty) on else commonCols(leftDf, rightDf)
     val ts = udf((x:String)=>if(x==null)"None" else x)
