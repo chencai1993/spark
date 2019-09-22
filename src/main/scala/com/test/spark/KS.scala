@@ -84,10 +84,8 @@ object KS {
   def main(args: Array[String]): Unit = {
     val path = args(0)
     var df = Utils.read(path)
-    for(col<-df.columns.drop(5)) {
-      val col = Utils.tsCols(df.columns(5))
-      var r = KS(df, col)
-    }
+    val columns = df.columns.drop(5)
+    columns.map(line=>KS(df,line))
   }
 
 }
