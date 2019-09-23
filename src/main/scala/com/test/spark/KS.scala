@@ -51,6 +51,8 @@ object KS {
     var none_data = data.filter(data(colName).isNull)
     data = data.filter(data(colName).isNotNull)
     data = data.select("label",colName).sort(colName)
+    data.persist()
+    none_data.persist()
     var count = getCount(data)
     var Seq(total_good,total_bad)=Seq(count.get(0).get,count.get(1).get)
     var res = List[Array[Double]]()
@@ -60,7 +62,6 @@ object KS {
     var Seq(none_total_good,none_total_bad)=Seq(count.get(0).get,count.get(1).get)
     data = Utils.add_index(data)
     var parts = cut(data,10,colName)
-
     var Seq(acc_good,acc_bad)=Seq(0.toLong,0.toLong)
     for(index<-Range(1,parts.length)){
       var t = data.filter(data(col)>parts(index-1) && data(col)<=parts(index))
@@ -83,7 +84,7 @@ object KS {
   }
   def main(args: Array[String]): Unit = {
     val path = args(0)
-    var df = Utils.read(path)
+    var df = Utils.tsCols(Utils.read(path))
     val columns = df.columns.drop(5)
     columns.map(line=>KS(df,line))
   }

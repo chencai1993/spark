@@ -101,7 +101,6 @@ class BinaryAUC extends Serializable {
     val y1 = points(0)._2(1)
     val x2 = points(1)._2(0)
     val y2 = points(1)._2(1)
-
     val base = x2 - x1
     val height = (y1 + y2)/2.0
     return base*height
