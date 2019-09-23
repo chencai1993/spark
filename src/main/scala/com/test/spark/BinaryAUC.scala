@@ -13,7 +13,7 @@ class BinaryAUC extends Serializable {
   def auc(df:DataFrame,label:String,feature:String):Double={
     val data = df.filter(df(feature).isNotNull).select(feature,label).rdd.map(line=>(line(0).toString.toDouble,line(1).toString().toDouble))
     auc(data)
-  }
+}
   def auc( data: RDD[ (Double, Double) ] ) : Double =
   {
     //group same score result

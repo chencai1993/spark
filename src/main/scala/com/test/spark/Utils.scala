@@ -30,8 +30,15 @@ object Utils {
     return read(spark,path)
   }
 
+
   def read(spark:SparkSession,path:String,inferSchema:String="true"):DataFrame={
-    val df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "true").csv(path=path)
+    //val df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "true").csv(path=path)
+    var df = spark.read.format("csv")
+      .option("maxColumns", 50000)
+      .option("inferSchema", "false")
+      .option("header", "true")
+      .option("delimiter", "\t")
+      .load(path)
     return df
   }
   def write(df:DataFrame,path:String,num_partition:Int = 200):Unit={
