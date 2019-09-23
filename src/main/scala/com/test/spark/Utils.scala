@@ -99,6 +99,11 @@ object Utils {
     res
   }
 
+  def main(args: Array[String]): Unit = {
+    val df = Utils.tsCols(read("scala_test"))
+    val auc = new BinaryAUC().auc(df,"label",df.columns(5))
+    println(auc)
+  }
 
 
 }

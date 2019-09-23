@@ -3,11 +3,17 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.rdd.RDDFunctions._
+import org.apache.spark.sql.DataFrame
+
 import scala.collection.Iterator
 import Array._
 
 class BinaryAUC extends Serializable {
   //input format: predictioin,label
+  def auc(df:DataFrame,label:String,feature:String):Double={
+    val data = df.filter(df(feature).isNotNull).select(feature,label).rdd.map(line=>(line(0).toString.toDouble,line(1).toString().toDouble))
+    auc(data)
+  }
   def auc( data: RDD[ (Double, Double) ] ) : Double =
   {
     //group same score result
