@@ -1,9 +1,13 @@
 package com.test.spark
 
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession,SQLContext}
+
+
+import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.udf
+
+import scala.util.Random
 object KS {
   def cut(data:DataFrame,Part:Int=10,col:String):Array[Double]={
     val count = data.count().toInt
@@ -14,13 +18,44 @@ object KS {
         pos = pos:+Math.min(i*l,count-1)
     }
     var parts = List[Double]()
-    val values = data.filter(data.col("index").isin(pos:_*)).select(col).collect().toArray.map(line=>line(0).asInstanceOf[Double])
+    val values = data.filter(data.col("index").isin(pos:_*)).select(col).collect().toArray.map(line=>line(0).toString.toDouble)
     values
   }
+
+  def getKey(parts:Array[Double],value:Double,label:Int):(Double,Double,Int)={
+    for(i<-parts.indices.drop(1)){
+      if(value<=parts(i))
+        return (parts(i-1),parts(i),label)
+    }
+    (-1,-1,label)
+  }
+  def getAllCount(df:DataFrame,parts:Array[Double]):Map[(Double,Double,Int),Int]={
+    var gs = Map[(Double,Double,Int),Int]()
+    try {
+      val t = df.rdd.map(line => {
+        val key = getKey(parts,line(1).toString.toDouble,line(0).toString.toInt)
+        (key,1)
+      }
+      ).reduceByKey((x1,x2)=>x1+x2).collect().foreach(line=>gs+=(line._1->line._2))
+    }catch {
+      case e:Exception=>0
+    }
+    gs
+  }
   def getCount(df:DataFrame):Map[Int,Long]={
-    var group = df.select("label").groupBy("label").count().collect().toArray.map(line=>(line(0).toString.toInt,line(1).toString.toLong))
-    var res = Map[Int,Long](1->0,0->0)
-    group.foreach((r)=>res +=(r._1->r._2))
+    var gs = (0.toInt,0.toInt)
+    try {
+       gs = df.rdd.map(line => {
+         if(line(0).toString=="0")
+           (1,0)
+         else
+           (0,1)
+      }
+      ).reduce((x1, x2) => (x1._1 + x2._1, x1._2 + x2._2))
+    }catch {
+      case e:Exception=>gs = (0.toInt,0.toInt)
+    }
+    var res = Map[Int,Long](1->gs._1,0->gs._2.toLong)
     res
   }
   def getIv(seq_good:Long,seq_bad:Long,total_good:Long,total_bad:Long): Double =
@@ -51,25 +86,27 @@ object KS {
     var none_data = data.filter(data(colName).isNull)
     data = data.filter(data(colName).isNotNull)
     data = data.select("label",colName).sort(colName)
-    data.persist()
-    none_data.persist()
+    data.repartition(100)
+    none_data.repartition(100)
+    data.cache()
+    none_data.cache()
     var count = getCount(data)
     var Seq(total_good,total_bad)=Seq(count.get(0).get,count.get(1).get)
     var res = List[Array[Double]]()
-    if (total_bad==0 || total_bad == 0 || total_good+total_bad<=10)
-      return res
+    //if (total_bad==0 || total_bad == 0 || total_good+total_bad<=10)
+   //   return res
     count = getCount(none_data)
+
     var Seq(none_total_good,none_total_bad)=Seq(count.get(0).get,count.get(1).get)
     data = Utils.add_index(data)
     var parts = cut(data,10,colName)
+    var  _ = getAllCount(data,parts)
     var Seq(acc_good,acc_bad)=Seq(0.toLong,0.toLong)
+
+    var all_count = getAllCount(data,parts)
     for(index<-Range(1,parts.length)){
-      var t = data.filter(data(col)>parts(index-1) && data(col)<=parts(index))
-      if(index==1){
-        t = data.filter(data(col)>=parts(index-1) && data(col)<=parts(index))
-      }
-      count = getCount(t)
-      var Seq(seq_good,seq_bad)=Seq(count.get(0).get,count.get(1).get)
+      val Seq(start,end)=Seq(parts(index-1),parts(index))
+      var Seq(seq_good,seq_bad)=Seq(all_count.getOrElse((start,end,1),0).toString.toInt,all_count.getOrElse((start,end,1),0).toString.toInt)
       acc_good+=seq_good
       acc_bad+=seq_bad
       val seq_res = getSeq(parts,index,seq_good,seq_bad,total_good,total_bad,none_total_good ,none_total_bad,acc_good,acc_bad)
@@ -83,10 +120,13 @@ object KS {
     res
   }
   def main(args: Array[String]): Unit = {
-    val path = args(0)
+
+    val path = "scala_test"//args(0)
     var df = Utils.tsCols(Utils.read(path))
-    val columns = df.columns.drop(5)
-    columns.map(line=>KS(df,line))
+    val features = df.columns.drop(5)
+    features.map(line=>KS(df,line))
+
+
   }
 
 }

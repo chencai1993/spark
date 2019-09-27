@@ -12,6 +12,7 @@ object Merge {
     val replace = ps.contains("replace") || ps.contains("r")
     var filelist = filepathlist.map(line=>Utils.tsCols(Utils.read(line)))
     var res = filelist(0)
+
     for(f<-filelist.drop(1))
     {
         if(replace)
@@ -21,7 +22,9 @@ object Merge {
           }
         res = Utils.join(res,f,List(),joinType)
     }
-    res = Utils.rtsCols(res)
+
+
+    res = Utils.tsCols(res)
     Utils.write(res,out)
   }
 
