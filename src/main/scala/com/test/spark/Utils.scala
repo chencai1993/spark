@@ -1,6 +1,5 @@
 package com.test.spark
 
-import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
@@ -8,8 +7,7 @@ import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.row_number
 object Utils {
-  val sc = SparkEnv.getSqc
-  import sc.implicits._
+
   def tsCols(cols:Array[String],oldc:String="",newc:String=""): Array[String] ={
     var newcols:Array[String]=new Array[String](cols.length)
     for(i<-cols.indices){
@@ -31,18 +29,12 @@ object Utils {
     val spark = SparkEnv.getSession
     return read(spark,path)
   }
+
   def read(spark:SparkSession,path:String,inferSchema:String="true"):DataFrame={
-    //val df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "true").csv(path=path)
-    var df = spark.read
-      .option("maxColumns", 50000)
-      .option("inferSchema", "false")
-      .option("header", "true")
-      .option("delimiter", "\t")
-      .csv(path)
+    val df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "true").option("maxColumns",50000).csv(path=path)
     return df
   }
-
-  def write(df:DataFrame,path:String):Unit={
+  def write(df:DataFrame,path:String,num_partition:Int = 200):Unit={
     df
       .write
       .format("csv")
@@ -106,11 +98,6 @@ object Utils {
     res
   }
 
-  def main(args: Array[String]): Unit = {
-    val df = Utils.tsCols(read("scala_test"))
-    val auc = new BinaryAUC().auc(df,"label",df.columns(5))
-    println(auc)
-  }
 
 
 }
