@@ -41,7 +41,9 @@ object Utils {
     return df
   }
   def write(df:DataFrame,path:String,num_partition:Int = 200):Unit={
-    df
+    val key = Array[String]("name","idcard","phone","loan_dt","label","uniq_id").filter(line=>df.columns.contains(line))
+    val data = df.dropDuplicates(key.head,key.tail:_*)
+    data
       .write
       .format("csv")
       .option("delimiter", "\t")
