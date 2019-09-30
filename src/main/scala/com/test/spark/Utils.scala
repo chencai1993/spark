@@ -1,11 +1,13 @@
 package com.test.spark
 
 import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions.udf
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.row_number
+import org.apache.spark.util.SizeEstimator
 object Utils {
 
   def tsCols(cols:Array[String],oldc:String="",newc:String=""): Array[String] ={
@@ -31,7 +33,11 @@ object Utils {
   }
 
   def read(spark:SparkSession,path:String,inferSchema:String="true"):DataFrame={
-    val df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "true").option("maxColumns",50000).csv(path=path)
+    var df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "false").option("maxColumns",50000).csv(path=path)
+    println("rdd partions :"+df.rdd.partitions.length)
+    if(df.columns.contains("loan_dt")){
+      df=df.withColumn("loan_dt",Utils.formatLoan_dt(df("loan_dt")))
+    }
     return df
   }
   def write(df:DataFrame,path:String,num_partition:Int = 200):Unit={
@@ -57,12 +63,12 @@ object Utils {
     val ts = udf((x:String)=>if(x==null)"None" else x)
     val rts = udf((x:String)=>if(x=="None")null else x)
     var Seq(leftDfts,rightDfts) =Seq(leftDf,rightDf)
-    for(cols<-Array("idcard","phone")){
+    for(cols<-(Set("idcard","phone") & usingCols.toSet)){
       leftDfts=leftDfts.withColumn(cols,ts(leftDf(cols)))
       rightDfts=rightDfts.withColumn(cols,ts(rightDfts(cols)))
     }
     var res = leftDfts.join(rightDfts,usingCols,joinType = joinType)
-    for(cols<-Array("idcard","phone")){
+    for(cols<-(Set("idcard","phone") & usingCols.toSet)){
       res=res.withColumn(cols,rts(res(cols)))
     }
     res
@@ -98,6 +104,39 @@ object Utils {
     res
   }
 
+  val formatLoan_dt = udf((loan_dt:String) => loan_dt.substring(0, 10))
+
+  def getTotalSize(rdd: RDD[Row]): Long = {
+    // This can be a parameter
+    val NO_OF_SAMPLE_ROWS = 10l;
+    val totalRows = rdd.count();
+    var totalSize = 0l
+    if (totalRows > NO_OF_SAMPLE_ROWS) {
+      val sampleRDD = rdd.sample(true, NO_OF_SAMPLE_ROWS)
+      val sampleRDDSize = getRDDSize(sampleRDD)
+      totalSize = sampleRDDSize.*(totalRows)./(NO_OF_SAMPLE_ROWS)
+    } else {
+      // As the RDD is smaller than sample rows count, we can just calculate the total RDD size
+      totalSize = getRDDSize(rdd)
+    }
+    totalSize
+  }
+  def getRDDSize(rdd: RDD[Row]) : Long = {
+    var rddSize = 0l
+    val rows = rdd.collect()
+    for (i <- 0 until rows.length) {
+      rddSize += SizeEstimator.estimate(rows.apply(i).toSeq.map { value => value.asInstanceOf[AnyRef] })
+    }
+    rddSize
+  }
+
+  def main(args: Array[String]): Unit = {
+
+    val df = read("scala_test")
+    val size = getTotalSize(df.rdd)
+    print(size)
+
+  }
 
 
 }

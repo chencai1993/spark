@@ -10,9 +10,15 @@ object Merge {
     val joinType = ps.get("joinType").get(0)
     var filepathlist =  ps.get("input").get
     val replace = ps.contains("replace") || ps.contains("r")
-    var filelist = filepathlist.map(line=>Utils.tsCols(Utils.read(line)))
+    var filelist = filepathlist.map(line=>Utils.read(line))
+    if(replace){
+      filelist = filelist.map(line=>Utils.tsCols(line))
+    }
+    if(ps.contains("repartions")){
+      val repartions = ps.get("repartions").get(0).toInt
+      filelist = filelist.map(line=>line.repartition(repartions))
+    }
     var res = filelist(0)
-
     for(f<-filelist.drop(1))
     {
         if(replace)
@@ -22,9 +28,7 @@ object Merge {
           }
         res = Utils.join(res,f,List(),joinType)
     }
-
-
-    res = Utils.tsCols(res)
+    res = Utils.rtsCols(res)
     Utils.write(res,out)
   }
 

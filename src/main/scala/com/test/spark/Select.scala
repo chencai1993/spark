@@ -5,13 +5,17 @@ object Select {
     val ps = Utils.getPs(args)
     val input = ps.get("input").get(0)
     val out = ps.get("out").get(0)
-    var df = Utils.read(spark, input)
+    var df = Utils.read(input)
     if (ps.contains("featurelist")) {
       val featurelist = ps.get("featurelist").get(0)
       val fealistdf = Utils.read(featurelist)
       var fl = fealistdf.select("feature_name").collect().toArray.map(line => line(0).toString)
       fl = Utils.tsCols(fl, ".", "#")
       df = Utils.tsCols(df).select(fl.head, fl.tail: _*)
+    }
+    if(ps.contains("getSample")){
+      var featurelist=Array[String]("name","idcard","phone","loan_dt","label").filter(line=>df.columns.contains(line))
+      df = df.select(featurelist.head, featurelist.tail: _*)
     }
     if(ps.contains("whitelist")){
       val whitelist = ps.get("whitelist").get
