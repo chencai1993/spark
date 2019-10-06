@@ -31,6 +31,28 @@ object Utils {
     val spark = SparkEnv.getSession
     return read(spark,path)
   }
+  def distict(df:DataFrame,cols:List[String]):DataFrame={
+    distict(df,cols.toArray)
+  }
+  def distict(df:DataFrame,cols:Array[String]):DataFrame={
+    val index = cols.map(line=>df.columns.indexOf(line))
+    println("cols index")
+    index.foreach(println)
+    val res = df.rdd.map(line=>{
+      var keys = List[String]()
+      for(i<-index){
+       if(line(i)==null)
+         keys:+=""
+        else
+         keys:+=line(i).toString
+      }
+      val key = keys.mkString("#")
+      (key,line)
+    }).reduceByKey((x,y)=>x).map{case(key,value)=>value}
+    val spark = SparkEnv.getSession
+    spark.createDataFrame(res,df.schema)
+  }
+
 
   def read(spark:SparkSession,path:String,inferSchema:String="true"):DataFrame={
     var df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "false").option("maxColumns",50000).csv(path=path)
@@ -41,8 +63,9 @@ object Utils {
     return df
   }
   def write(df:DataFrame,path:String,num_partition:Int = 200):Unit={
+
     val key = Array[String]("name","idcard","phone","loan_dt","label","uniq_id").filter(line=>df.columns.contains(line))
-    val data = df.dropDuplicates(key.head,key.tail:_*)
+    val data = df//.dropDuplicates(key.toSeq)
     data
       .write
       .format("csv")
@@ -134,9 +157,9 @@ object Utils {
 
   def main(args: Array[String]): Unit = {
 
-    val df = read("scala_test")
-    val size = getTotalSize(df.rdd)
-    print(size)
+    val df = read("test")
+    val res = distict(df,Array[String]("idcard","phone"))
+    res.take(10).foreach(println)
 
   }
 
