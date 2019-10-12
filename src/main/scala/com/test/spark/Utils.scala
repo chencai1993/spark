@@ -165,9 +165,7 @@ object Utils {
 
   def main(args: Array[String]): Unit = {
 
-    val df = read("test")
-    val t = df.describe()
-    t.collect().foreach(println)
+
 
 
   }
