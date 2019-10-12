@@ -15,7 +15,11 @@ object Select {
       val fealistdf = Utils.read(featurelist)
       var fl = fealistdf.select("feature_name").collect().toArray.map(line => line(0).toString)
       fl = Utils.tsCols(fl, ".", "#")
-      df = Utils.tsCols(df).select(fl.head, fl.tail: _*)
+      df = Utils.tsCols(df)
+      if(ps.contains("common")){
+        fl = fl.filter(line=>df.columns.contains(line))
+      }
+      df = df.select(fl.head, fl.tail: _*)
       df = Utils.rtsCols(df)
     }
     if(ps.contains("getSample")){

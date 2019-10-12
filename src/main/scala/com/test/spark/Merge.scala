@@ -24,7 +24,8 @@ object Merge {
         if(replace)
           {
             val commonfeatures = Utils.commonColsNoName(res,f)
-            res = res.drop(commonfeatures:_*)
+            if(commonfeatures.length>0)
+                res = res.drop(commonfeatures:_*)
           }
         res = Utils.join(res,f,List(),joinType)
     }

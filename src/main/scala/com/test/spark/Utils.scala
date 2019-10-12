@@ -62,11 +62,8 @@ object Utils {
     }
     return df
   }
-  def write(df:DataFrame,path:String,num_partition:Int = 200):Unit={
-
-    val key = Array[String]("name","idcard","phone","loan_dt","label","uniq_id").filter(line=>df.columns.contains(line))
-    val data = df//.dropDuplicates(key.toSeq)
-    data
+  def write(df:DataFrame,path:String):Unit={
+    df
       .write
       .format("csv")
       .option("delimiter", "\t")
@@ -74,6 +71,17 @@ object Utils {
       .mode(SaveMode.Overwrite)
       .csv(path)
   }
+  def write(df:DataFrame,path:String,num_partition:Int = 200):Unit={
+    df
+        .repartition(num_partition)
+      .write
+      .format("csv")
+      .option("delimiter", "\t")
+      .option("header", "true")
+      .mode(SaveMode.Overwrite)
+      .csv(path)
+  }
+
   def getCols(df:DataFrame,col:String):Array[String]={
     df.select(col).collect().toArray.map(line=>line(0).toString)
   }
@@ -158,8 +166,9 @@ object Utils {
   def main(args: Array[String]): Unit = {
 
     val df = read("test")
-    val res = distict(df,Array[String]("idcard","phone"))
-    res.take(10).foreach(println)
+    val t = df.describe()
+    t.collect().foreach(println)
+
 
   }
 
