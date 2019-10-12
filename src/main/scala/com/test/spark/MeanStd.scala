@@ -10,6 +10,7 @@ object MeanStd {
     df = df.drop(drop_cols:_*)
     val res  = df.describe()
     Utils.write(res,out,1)
+    
   }
 
 }
