@@ -115,7 +115,6 @@ object KS {
     res
   }
   def main(args: Array[String]): Unit = {
-
     val path = args(0)
     var df = Utils.tsCols(Utils.read(path))
     df.cache()
