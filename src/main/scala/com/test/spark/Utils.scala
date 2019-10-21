@@ -164,9 +164,8 @@ object Utils {
   }
 
   def main(args: Array[String]): Unit = {
-
-
-     val tttt = "2"
+     val df = read("test")
+     println(df.count())
 
   }
 
