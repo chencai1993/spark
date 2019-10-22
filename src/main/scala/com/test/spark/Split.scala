@@ -17,6 +17,7 @@ object Split {
     val input = args(0)
     val out = args(1)
     split(input,out)
+    
   }
 
 }
