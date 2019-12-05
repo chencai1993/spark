@@ -55,7 +55,7 @@ object Utils {
 
 
   def read(spark:SparkSession,path:String,inferSchema:String="true"):DataFrame={
-    var df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "false").option("maxColumns",50000).csv(path=path)
+    var df = spark.read.option("delimiter",",").option("header",true).option("inferSchema", "false").option("maxColumns",50000).csv(path=path)
     println("rdd partions :"+df.rdd.partitions.length)
     if(df.columns.contains("loan_dt")){
       df=df.withColumn("loan_dt",Utils.formatLoan_dt(df("loan_dt")))
@@ -164,10 +164,7 @@ object Utils {
   }
 
   def main(args: Array[String]): Unit = {
-      var t = "222222222222222222222222222222"
-      var ttt = "2222222222222222222222222"
-      var t = "1111111111"
-      var ttt = "1111111"
+
   }
 
 

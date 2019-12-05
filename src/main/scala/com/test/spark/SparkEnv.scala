@@ -6,7 +6,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 object SparkEnv{
 
   System.setProperty("hadoop.home.dir", "D:/")
-  private val l_conf = new SparkConf().setMaster("local").setAppName("tianji-spark")
+  private val l_conf = new SparkConf().setMaster("local").setAppName("tianji-spark").setExecutorEnv("executor-cores","2")
+
   private val c_conf = new SparkConf()
   private val conf = l_conf
   private val session = SparkSession.builder().appName("tianji-spark").config(this.conf).getOrCreate()

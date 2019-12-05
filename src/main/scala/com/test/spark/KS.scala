@@ -86,7 +86,7 @@ object KS {
     parts_count.foreach(line=>{
       if(line._1._3==0)
         if(line._1._1==0 && line._1._2== -1)
-          none_total_good+=line._2
+          none_total_good+=line._2;
         else
           total_good+=line._2
       else
@@ -115,11 +115,13 @@ object KS {
     res
   }
   def main(args: Array[String]): Unit = {
-    val path = args(0)
+    val path = "scala_test" //args(0)
     var df = Utils.tsCols(Utils.read(path))
     df.cache()
-    val features = df.columns.drop(5)
-    features.map(line=>try{KS(df,line)}catch {case e:Exception=>0})
+    val sc = SparkEnv.getSc
+    val features = sc.parallelize(df.columns,1)
+    val res = features.map(line=>KS(df,line))
+    res.collect().foreach(println)
   }
 
 }
