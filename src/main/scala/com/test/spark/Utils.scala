@@ -8,8 +8,26 @@ import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.row_number
 import org.apache.spark.util.SizeEstimator
+import util.control.Breaks._
 object Utils {
 
+  def rename(df:DataFrame,columns:Array[String]):DataFrame={
+    val oldcolumns = df.columns
+    if(oldcolumns.length !=columns)
+       df
+    var check = false
+    for(i<-Range(0,oldcolumns.length)){
+      if(oldcolumns(i)!=columns(i))
+        {
+          check=true
+          break
+        }
+    }
+    if(check)
+      df.toDF(columns:_*)
+    else
+      df
+  }
   def tsCols(cols:Array[String],oldc:String="",newc:String=""): Array[String] ={
     var newcols:Array[String]=new Array[String](cols.length)
     for(i<-cols.indices){
@@ -18,15 +36,14 @@ object Utils {
     newcols
   }
   def tsCols(df:DataFrame):DataFrame={
-    df.toDF(tsCols(df.columns,".","#"):_*)
+    rename(df,tsCols(df.columns,".","#"))
   }
   def tsCols(col:String):String={
     col.replace(".","#")
   }
   def rtsCols(df:DataFrame):DataFrame={
-    df.toDF(tsCols(df.columns,"#","."):_*)
+    rename(df,tsCols(df.columns,"#","."))
   }
-
   def read(path:String):DataFrame={
     val spark = SparkEnv.getSession
     return read(spark,path)
@@ -55,7 +72,7 @@ object Utils {
 
 
   def read(spark:SparkSession,path:String,inferSchema:String="true"):DataFrame={
-    var df = spark.read.option("delimiter",",").option("header",true).option("inferSchema", "false").option("maxColumns",50000).csv(path=path)
+    var df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "false").option("maxColumns",50000).csv(path=path)
     println("rdd partions :"+df.rdd.partitions.length)
     if(df.columns.contains("loan_dt")){
       df=df.withColumn("loan_dt",Utils.formatLoan_dt(df("loan_dt")))
@@ -93,6 +110,9 @@ object Utils {
   }
   def join(leftDf: DataFrame, rightDf: DataFrame,on: List[String]=List[String](),joinType:String): DataFrame = {
     val usingCols = if(on.nonEmpty) on else commonCols(leftDf, rightDf)
+    println("------------------------usingCols--------------------")
+    usingCols.foreach(println)
+    println("------------------------usingCols--------------------")
     val ts = udf((x:String)=>if(x==null)"None" else x)
     val rts = udf((x:String)=>if(x=="None")null else x)
     var Seq(leftDfts,rightDfts) =Seq(leftDf,rightDf)
@@ -162,6 +182,7 @@ object Utils {
     }
     rddSize
   }
+
 
   def main(args: Array[String]): Unit = {
 
