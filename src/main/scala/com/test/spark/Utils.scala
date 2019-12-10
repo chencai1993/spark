@@ -44,9 +44,9 @@ object Utils {
   def rtsCols(df:DataFrame):DataFrame={
     rename(df,tsCols(df.columns,"#","."))
   }
-  def read(path:String):DataFrame={
+  def read(path:String,delimiter:String="\t"):DataFrame={
     val spark = SparkEnv.getSession
-    return read(spark,path)
+    return read(spark,path,delimiter=delimiter)
   }
   def distict(df:DataFrame,cols:List[String]):DataFrame={
     distict(df,cols.toArray)
@@ -71,8 +71,8 @@ object Utils {
   }
 
 
-  def read(spark:SparkSession,path:String,inferSchema:String="true"):DataFrame={
-    var df = spark.read.option("delimiter","\t").option("header",true).option("inferSchema", "false").option("maxColumns",50000).csv(path=path)
+  def read(spark:SparkSession,path:String,delimiter:String):DataFrame={
+    var df = spark.read.option("delimiter",delimiter).option("header",true).option("inferSchema", "false").option("maxColumns",50000).csv(path=path)
     println("rdd partions :"+df.rdd.partitions.length)
     if(df.columns.contains("loan_dt")){
       df=df.withColumn("loan_dt",Utils.formatLoan_dt(df("loan_dt")))
@@ -185,6 +185,9 @@ object Utils {
 
 
   def main(args: Array[String]): Unit = {
+    val sc = SparkEnv.getSc
+    val features = sc.parallelize(Seq(1 to 30),4)
+
 
   }
 
