@@ -8,7 +8,7 @@ import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.row_number
 import org.apache.spark.util.SizeEstimator
-import util.control.Breaks._
+
 object Utils {
 
   def rename(df:DataFrame,columns:Array[String]):DataFrame={
@@ -20,7 +20,6 @@ object Utils {
       if(oldcolumns(i)!=columns(i))
         {
           check=true
-          break
         }
     }
     if(check)
@@ -40,6 +39,9 @@ object Utils {
   }
   def tsCols(col:String):String={
     col.replace(".","#")
+  }
+  def rtsCols(col:String):String={
+    col.replace("#",".")
   }
   def rtsCols(df:DataFrame):DataFrame={
     rename(df,tsCols(df.columns,"#","."))

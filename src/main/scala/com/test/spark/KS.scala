@@ -2,15 +2,16 @@ package com.test.spark
 
 
 
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.udf
-
+import scala.collection.mutable.Set
 import scala.util.Random
 object KS {
-  def cut(data:DataFrame,Part:Int=10,col:String):Array[Double]={
-    val count = data.count().toInt
+  def cut(data:Array[(Double,Int)],Part:Int=10):Array[Double]={
+    val count = data.length
     if(count<=Part)
       return Array[Double]()
     var l = Math.ceil(count*1.0/Part).toInt
@@ -19,13 +20,15 @@ object KS {
     {
         pos = pos:+Math.min(i*l,count-1)
     }
-    var parts = List[Double]()
-    val values = data.filter(data.col("index").isin(pos:_*)).select(col).collect().toArray.map(line=>line(0).toString.toDouble)
-    values
+    var parts = Set[Double]()
+    for(i<-pos){
+      parts.add(data(i)._1)
+    }
+    parts.toList.sorted.toArray
   }
 
   def getKey(parts:Array[Double],value:Any,label:Int):(Double,Double,Int)={
-    if(value == null || value=="nan")
+    if(value == null || value.toString =="nan")
       return (0,-1,label)
     var v  = value.toString.toDouble
     for(i<-parts.indices.drop(1)){
@@ -34,14 +37,14 @@ object KS {
     }
     (0,-1,label)
   }
-  def getAllCount(df:DataFrame,parts:Array[Double]):Map[(Double,Double,Int),Int]={
+  def getAllCount(data:Array[(Any,Any)],parts:Array[Double]):Map[(Double,Double,Int),Int]={
     var gs = Map[(Double,Double,Int),Int]()
     try {
-      df.rdd.map(line => {
-        val key = getKey(parts,line(1),line(0).toString.toInt)
+      data.map(line => {
+        val key = getKey(parts,line._1,line._2.toString.toInt)
         (key,1)
       }
-      ).reduceByKey((x1,x2)=>x1+x2).collect().foreach(line=>{gs+=(line._1->line._2)})
+      ).groupBy(_._1).mapValues(_.map(_._2).sum).toMap.foreach(line=>{gs+=(line._1->line._2)})
     }catch {
       case e:Exception=>0
     }
@@ -68,19 +71,15 @@ object KS {
     res:+=getIv(seq_good,seq_bad,total_good+none_total_good,total_bad+none_total_bad)
     res.toArray
   }
-  def KS(df:DataFrame,col:String):List[Array[Double]]={
+  def KS(data:Array[(Any,Any)]):List[Array[Double]]={
     var map = Map[String,Any]()
     var res = List[Array[Double]]()
-    var colName = Utils.tsCols(col)
-    var all_data = Utils.tsCols(df.filter(df("label").isNotNull)).select("label",colName)
-
-    var notnone_data = all_data.filter(all_data(colName).isNotNull)
-    notnone_data = notnone_data.sort(colName)
-    notnone_data = Utils.add_index(notnone_data)
-    var parts = cut(notnone_data,10,colName)
+    var filterdata = data.filter{case(v,l) => l !=null && l.toString !="nan"}
+    var notnone_data = filterdata.filter{case(v,l) => v !=null && v.toString !="nan"}.map{case(v,l)=>(v.toString.toDouble,l.toString.toInt)}.sortBy(_._1)
+    var parts = cut(notnone_data,10)
     if(parts.length==0)
       return res
-    var parts_count = getAllCount(all_data,parts)
+    var parts_count = getAllCount(filterdata,parts)
     var Seq(none_total_good,none_total_bad)=Seq(0,0)
     var Seq(total_good,total_bad)=Seq(0,0)
     parts_count.foreach(line=>{
@@ -101,27 +100,60 @@ object KS {
     var Seq(acc_good,acc_bad)=Seq(0.toLong,0.toLong)
     for(index<-Range(1,parts.length)){
       val Seq(start,end)=Seq(parts(index-1),parts(index))
-      var Seq(seq_good,seq_bad)=Seq(parts_count.getOrElse((start,end,1),0).toString.toInt,parts_count.getOrElse((start,end,1),0).toString.toInt)
+      var Seq(seq_good,seq_bad)=Seq(parts_count.getOrElse((start,end,0),0).toString.toInt,parts_count.getOrElse((start,end,1),0).toString.toInt)
       acc_good+=seq_good
       acc_bad+=seq_bad
       val seq_res = getSeq(parts,index,seq_good,seq_bad,total_good,total_bad,none_total_good ,none_total_bad,acc_good,acc_bad)
       res:+=seq_res
     }
-    val head = List("seq","开始","结束","订单数","逾期数","正常用户数","百分比","逾期率","累计坏账户占比","累计好账户占比","KS","IV").mkString("\t")
-    println(head)
-    for(line<-res){
-      println(line.mkString("\t"))
-    }
+
     res
   }
+  //(Map[String,Int],RDD[(Int,(Double,Int))])
+  def transformData(df:DataFrame):Unit={
+    var feature_to_index = Map[String,Int]()
+    var index_to_feaature = Map[Int,String]()
+    for(i<-df.columns.zipWithIndex){
+      val feature = i._1
+      val index = i._2
+      feature_to_index += (feature -> index)
+      index_to_feaature += (index -> feature)
+    }
+    var label_index = feature_to_index.get("label").get
+    var data = df.rdd.map(line=> {
+      val label = line(label_index)
+      line.toSeq.toArray.zipWithIndex.map{
+        case(value,index)=>{
+        (index,(value,label))
+      }
+      }
+    }).flatMap(line=>line).groupByKey()
+    val ks = data.mapValues{line=>{
+      KS(line.toArray)
+    }}
+    val res = ks.collect()
+    res.foreach{
+      case(index,value)=>
+      {
+        println(Utils.rtsCols(index_to_feaature.get(index).get))
+        val head = List("seq","开始","结束","订单数","逾期数","正常用户数","百分比","逾期率","累计坏账户占比","累计好账户占比","KS","IV").mkString("\t")
+        println(head)
+        for(line<-value){
+          println(line.mkString("\t"))
+        }
+      }
+    }
+  }
+  def filter_df(df:DataFrame,featurelist:Array[String]):DataFrame={
+    val fl  = featurelist ++ Array[String]("label")
+    df.select(fl.head,fl.tail:_*)
+  }
   def main(args: Array[String]): Unit = {
-    val path = "scala_test" //args(0)
+    val path = args(0)
     var df = Utils.tsCols(Utils.read(path))
-    df.cache()
     val sc = SparkEnv.getSc
-    val features = sc.parallelize(df.columns,1)
-    val res = features.map(line=>KS(df,line))
-    res.collect().foreach(println)
+    df = filter_df(df,df.columns.slice(5,10000))
+    transformData(df)
   }
 
 }

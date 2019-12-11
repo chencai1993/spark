@@ -5,7 +5,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 object SparkEnv{
 
-  private val conf = new SparkConf()//.set("spark.executor.cores","4").setMaster("local")
+  private val conf = new SparkConf()//.set("spark.executor.cores","2").setMaster("local")
   private val session = SparkSession.builder().appName("tianji-spark").config(this.conf).getOrCreate()
 
   private val sc: SparkContext = SparkEnv.getSession.sparkContext
