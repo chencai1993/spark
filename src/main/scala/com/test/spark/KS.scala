@@ -9,6 +9,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions.udf
 import scala.collection.mutable.Set
 import scala.util.Random
+import java.io.PrintWriter
 object KS {
   def cut(data:Array[(Double,Int)],Part:Int=10):Array[Double]={
     val count = data.length
@@ -27,8 +28,17 @@ object KS {
     parts.toList.sorted.toArray
   }
 
+  def isNum(v:Any):Boolean={
+    try{
+      v.toString.toDouble
+      true
+    }catch
+      {
+        case e:Exception => false
+     }
+  }
   def getKey(parts:Array[Double],value:Any,label:Int):(Double,Double,Int)={
-    if(value == null || value.toString =="nan")
+    if(isNum(value)==false)
       return (0,-1,label)
     var v  = value.toString.toDouble
     for(i<-parts.indices.drop(1)){
@@ -74,8 +84,8 @@ object KS {
   def KS(data:Array[(Any,Any)]):List[Array[Double]]={
     var map = Map[String,Any]()
     var res = List[Array[Double]]()
-    var filterdata = data.filter{case(v,l) => l !=null && l.toString !="nan"}
-    var notnone_data = filterdata.filter{case(v,l) => v !=null && v.toString !="nan"}.map{case(v,l)=>(v.toString.toDouble,l.toString.toInt)}.sortBy(_._1)
+    var filterdata = data.filter{case(v,l) => isNum(l)}
+    var notnone_data = filterdata.filter{case(v,l) => isNum(v)}.map{case(v,l)=>(v.toString.toDouble,l.toString.toInt)}.sortBy(_._1)
     var parts = cut(notnone_data,10)
     if(parts.length==0)
       return res
@@ -109,8 +119,7 @@ object KS {
 
     res
   }
-  //(Map[String,Int],RDD[(Int,(Double,Int))])
-  def transformData(df:DataFrame):Unit={
+  def calculate_ks(df:DataFrame,out:String):Unit={
     var feature_to_index = Map[String,Int]()
     var index_to_feaature = Map[Int,String]()
     for(i<-df.columns.zipWithIndex){
@@ -132,17 +141,21 @@ object KS {
       KS(line.toArray)
     }}
     val res = ks.collect()
+
+    val outprint = new PrintWriter(out)
     res.foreach{
-      case(index,value)=>
-      {
-        println(Utils.rtsCols(index_to_feaature.get(index).get))
-        val head = List("seq","开始","结束","订单数","逾期数","正常用户数","百分比","逾期率","累计坏账户占比","累计好账户占比","KS","IV").mkString("\t")
-        println(head)
-        for(line<-value){
-          println(line.mkString("\t"))
+      case(index,value)=> {
+        outprint.println(Utils.rtsCols(index_to_feaature.get(index).get))
+        if (value.length > 0) {
+          val head = List("seq", "开始", "结束", "订单数", "逾期数", "正常用户数", "百分比", "逾期率", "累计坏账户占比", "累计好账户占比", "KS", "IV").mkString("\t")
+          outprint.println(head)
+          for (line <- value) {
+            outprint.println(line.mkString("\t"))
+          }
         }
       }
     }
+    outprint.close()
   }
   def filter_df(df:DataFrame,featurelist:Array[String]):DataFrame={
     val fl  = featurelist ++ Array[String]("label")
@@ -150,10 +163,10 @@ object KS {
   }
   def main(args: Array[String]): Unit = {
     val path = args(0)
+    val out = args(1)
     var df = Utils.tsCols(Utils.read(path))
-    val sc = SparkEnv.getSc
-    df = filter_df(df,df.columns.slice(5,10000))
-    transformData(df)
+    df = filter_df(df,df.columns)
+    calculate_ks(df,out)
   }
 
 }
