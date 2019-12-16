@@ -1,5 +1,6 @@
 package com.test.spark
 
+import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions.udf
@@ -10,6 +11,35 @@ import org.apache.spark.sql.functions.row_number
 import org.apache.spark.util.SizeEstimator
 
 object Utils {
+
+  def hdfs_delete(path:String):Unit={
+    if(path.contains("/user/chencai/")==false)
+      return
+    var sc = SparkEnv.getSc
+    val hadoopConf = sc.hadoopConfiguration
+    val hdfs = org.apache.hadoop.fs.FileSystem.get(hadoopConf)
+    val file =new Path(path)
+    try{
+      if(hdfs.exists(file)){
+        hdfs.delete(file,true)
+      }
+    }
+  }
+  def hdfs_rename(oldpath:String,newpath:String):Unit={
+    if(newpath.contains("/user/chencai/")==false)
+      return
+    var sc = SparkEnv.getSc
+    val hadoopConf = sc.hadoopConfiguration
+    val hdfs = org.apache.hadoop.fs.FileSystem.get(hadoopConf)
+    val file1 =new Path(oldpath)
+    val file2 =new Path(newpath)
+    try{
+      if(hdfs.exists(file2)){
+        hdfs_delete(newpath)
+      }
+      hdfs.rename(file1,file2)
+    }
+  }
 
   def rename(df:DataFrame,columns:Array[String]):DataFrame={
     val oldcolumns = df.columns
@@ -82,6 +112,8 @@ object Utils {
     return df
   }
   def write(df:DataFrame,path:String):Unit={
+    if(df.rdd.partitions.length==1)
+      write(df,path,200)
     df
       .write
       .format("csv")
@@ -110,7 +142,7 @@ object Utils {
   def commonColsNoName(leftDf: DataFrame, rightDf: DataFrame):List[String]={
     ((leftDf.columns.toSet & rightDf.columns.toSet) &~ Set("name","idcard","phone","loan_dt","label","uniq_id")).toList
   }
-  def join(leftDf: DataFrame, rightDf: DataFrame,on: List[String]=List[String](),joinType:String): DataFrame = {
+  def join(leftDf: DataFrame, rightDf: DataFrame,on: List[String]=List[String](),joinType:String="inner"): DataFrame = {
     val usingCols = if(on.nonEmpty) on else commonCols(leftDf, rightDf)
     println("------------------------usingCols--------------------")
     usingCols.foreach(println)

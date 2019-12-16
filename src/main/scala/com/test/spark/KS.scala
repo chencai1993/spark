@@ -129,6 +129,7 @@ object KS {
       index_to_feaature += (index -> feature)
     }
     var label_index = feature_to_index.get("label").get
+    // columns to line
     var data = df.rdd.map(line=> {
       val label = line(label_index)
       line.toSeq.toArray.zipWithIndex.map{
