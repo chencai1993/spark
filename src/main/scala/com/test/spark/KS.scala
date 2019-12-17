@@ -81,14 +81,14 @@ object KS {
     res:+=getIv(seq_good,seq_bad,total_good+none_total_good,total_bad+none_total_bad)
     res.toArray
   }
-  def KS(data:Array[(Any,Any)]):List[Array[Double]]={
+  def KS(data:Array[(Any,Any)]):Double={
     var map = Map[String,Any]()
     var res = List[Array[Double]]()
     var filterdata = data.filter{case(v,l) => isNum(l)}
     var notnone_data = filterdata.filter{case(v,l) => isNum(v)}.map{case(v,l)=>(v.toString.toDouble,l.toString.toInt)}.sortBy(_._1)
     var parts = cut(notnone_data,10)
     if(parts.length==0)
-      return res
+      return 0
     var parts_count = getAllCount(filterdata,parts)
     var Seq(none_total_good,none_total_bad)=Seq(0,0)
     var Seq(total_good,total_bad)=Seq(0,0)
@@ -106,8 +106,9 @@ object KS {
     })
 
     if (total_bad==0 || total_bad == 0 || total_good+total_bad<=10)
-      return res
+      return 0
     var Seq(acc_good,acc_bad)=Seq(0.toLong,0.toLong)
+    var max_ks = 0.0
     for(index<-Range(1,parts.length)){
       val Seq(start,end)=Seq(parts(index-1),parts(index))
       var Seq(seq_good,seq_bad)=Seq(parts_count.getOrElse((start,end,0),0).toString.toInt,parts_count.getOrElse((start,end,1),0).toString.toInt)
@@ -115,9 +116,10 @@ object KS {
       acc_bad+=seq_bad
       val seq_res = getSeq(parts,index,seq_good,seq_bad,total_good,total_bad,none_total_good ,none_total_bad,acc_good,acc_bad)
       res:+=seq_res
+      if(seq_res(10)>max_ks)
+        max_ks = seq_res(10)
     }
-
-    res
+    max_ks
   }
   def calculate_ks(df:DataFrame,out:String):Unit={
     var feature_to_index = Map[String,Int]()
@@ -142,7 +144,7 @@ object KS {
       KS(line.toArray)
     }}
     val res = ks.collect()
-
+/*
     val outprint = new PrintWriter(out)
     res.foreach{
       case(index,value)=> {
@@ -157,6 +159,8 @@ object KS {
       }
     }
     outprint.close()
+
+ */
   }
   def filter_df(df:DataFrame,featurelist:Array[String]):DataFrame={
     val fl  = featurelist ++ Array[String]("label")
