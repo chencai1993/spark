@@ -1,5 +1,6 @@
 package com.test.spark
 
+import com.typesafe.config.ConfigFactory
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -217,12 +218,9 @@ object Utils {
     rddSize
   }
 
-
   def main(args: Array[String]): Unit = {
-    val sc = SparkEnv.getSc
-    val features = sc.parallelize(Seq(1 to 30),4)
-
-
+    val config = ConfigFactory.load("params.yaml")
+    println(config)
   }
 
 
