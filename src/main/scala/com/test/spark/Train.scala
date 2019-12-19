@@ -17,39 +17,41 @@ object Train {
 
   def main(args: Array[String]): Unit = {
 
+    val param_handle = new ReadParam(args(0))
+    val (train_params, xgb_params, missing, types) = param_handle.readHandle
 
     val spark = SparkEnv.getSession
 
-    val train = Utils.tsCols(Utils.read("train",inferSchema = "true")).na.fill(-999)
-    val test = Utils.tsCols(Utils.read("test",inferSchema = "true")).na.fill(-999)
-    val fl = Utils.read("featurelist").select("feature_name").collect().map(line=>Utils.tsCols(line(0).toString))
-    val keys = Array[String]("name","idcard","phone","loan_dt","label")
+    val train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).na.fill(missing)
+    val test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true")).na.fill(missing)
+    val fl = Utils.read(train_params.whitelist_path).select("feature_name").collect().map(line=>Utils.tsCols(line(0).toString))
+    for(featurename<-fl){
+
+    }
+    val keys = train_params.key.split(" ")
     val vectorAssembler = new VectorAssembler().
       setInputCols(fl).
       setOutputCol("features")
-
     val xgb_input_train = vectorAssembler.transform(train).select("features", "label")
     val xgb_input_test = vectorAssembler.transform(test).select("features", "label")
-
-    val param_handle = new ReadParam("params.yaml")
-    val (train_params, xgb_params, missing, types) = param_handle.readHandle
 
     val xgbClassifier = new XGBoostEstimator(xgb_params).
       setFeaturesCol("features").
       setLabelCol("label")
       .setPredictionCol("score")
     val xgbModel = xgbClassifier.fit(xgb_input_train)
+    println("模型训练完成")
     val test_data = xgb_input_test.rdd.map(r => new DenseVector(r.getAs[Vector]("features").toArray))
-    val score = xgbModel.predict(test_data,-999)
+    val score = xgbModel.predict(test_data,missing)
 
-    val columns = (keys :+ "score").toSeq
     val test_key = test.select(keys.head,keys.tail:_*)
-    val schama = test_key.schema.add(StructField("score", FloatType, nullable = true))
-    val test_res = test_key.rdd.zip(score).map(line=>Row.fromSeq(line._1.toSeq ++ line._2.toSeq))//.toDF(columns:_*)
-    val df = spark.createDataFrame(test_res,schama)
+    val schema = test_key.schema.add(StructField("score", FloatType, nullable = true))
+    val test_res = test_key.rdd.zip(score).map(line=>Row.fromSeq(line._1.toSeq ++ line._2.toSeq))
+    val df = spark.createDataFrame(test_res,schema)
+    Utils.write(df,train_params.test_res_path)
 
     val ks  = KS.KS(df.select("score","label").rdd.map(line=>(line(0),line(1))).collect())
-    println(ks)
+    println(ks._1*100)
 
 
   }
