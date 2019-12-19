@@ -7,9 +7,10 @@ import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.udf
+
 import scala.collection.mutable.Set
 import scala.util.Random
-import java.io.PrintWriter
+import java.io.{PrintStream, PrintWriter}
 object KS {
   def cut(data:Array[(Double,Int)],Part:Int=10):Array[Double]={
     val count = data.length
@@ -81,14 +82,14 @@ object KS {
     res:+=getIv(seq_good,seq_bad,total_good+none_total_good,total_bad+none_total_bad)
     res.toArray
   }
-  def KS(data:Array[(Any,Any)]):Double={
+  def KS(data:Array[(Any,Any)]):(Double,List[Array[Double]])={
     var map = Map[String,Any]()
     var res = List[Array[Double]]()
     var filterdata = data.filter{case(v,l) => isNum(l)}
     var notnone_data = filterdata.filter{case(v,l) => isNum(v)}.map{case(v,l)=>(v.toString.toDouble,l.toString.toInt)}.sortBy(_._1)
     var parts = cut(notnone_data,10)
     if(parts.length==0)
-      return 0
+      return (0,res)
     var parts_count = getAllCount(filterdata,parts)
     var Seq(none_total_good,none_total_bad)=Seq(0,0)
     var Seq(total_good,total_bad)=Seq(0,0)
@@ -106,7 +107,7 @@ object KS {
     })
 
     if (total_bad==0 || total_bad == 0 || total_good+total_bad<=10)
-      return 0
+      return (0,res)
     var Seq(acc_good,acc_bad)=Seq(0.toLong,0.toLong)
     var max_ks = 0.0
     for(index<-Range(1,parts.length)){
@@ -119,7 +120,7 @@ object KS {
       if(seq_res(10)>max_ks)
         max_ks = seq_res(10)
     }
-    max_ks
+    (max_ks,res)
   }
   def calculate_ks(df:DataFrame,out:String):Unit={
     var feature_to_index = Map[String,Int]()
@@ -143,24 +144,36 @@ object KS {
     val ks = data.mapValues{line=>{
       KS(line.toArray)
     }}
-    val res = ks.collect()
-/*
-    val outprint = new PrintWriter(out)
-    res.foreach{
-      case(index,value)=> {
-        outprint.println(Utils.rtsCols(index_to_feaature.get(index).get))
-        if (value.length > 0) {
-          val head = List("seq", "开始", "结束", "订单数", "逾期数", "正常用户数", "百分比", "逾期率", "累计坏账户占比", "累计好账户占比", "KS", "IV").mkString("\t")
-          outprint.println(head)
-          for (line <- value) {
-            outprint.println(line.mkString("\t"))
-          }
-        }
+
+    val res = ks.collect().map{
+      case(index,value)=>{
+        val feature_name =  Utils.rtsCols(index_to_feaature.get(index).get)
+        (feature_name,value)
       }
     }
-    outprint.close()
-
- */
+    var out = System.out
+    if(out!="")
+      out = new PrintStream(out)
+    var outprint = new PrintWriter(out)
+    res.foreach{
+      case(feature_name,value)=>{
+        printKs(feature_name,value,outprint)
+      }
+    }
+    if(out!="")
+      outprint.close()
+  }
+  def printKs(feature_name:String,data:(Double,List[Array[Double]]),out:PrintWriter=new PrintWriter(System.out)):Unit={
+    var outprint = out
+    outprint.println(feature_name+" ks="+data._1*100+"%")
+    val value = data._2
+    if (value.length > 0) {
+      val head = List("seq", "开始", "结束", "订单数", "逾期数", "正常用户数", "百分比", "逾期率", "累计坏账户占比", "累计好账户占比", "KS", "IV").mkString("\t")
+      outprint.println(head)
+      for (line <- value) {
+        outprint.println(line.mkString("\t"))
+      }
+    }
   }
   def filter_df(df:DataFrame,featurelist:Array[String]):DataFrame={
     val fl  = featurelist ++ Array[String]("label")
