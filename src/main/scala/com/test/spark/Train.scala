@@ -6,11 +6,12 @@ import org.apache.arrow.vector.types.pojo.ArrowType.Struct
 import org.apache.spark.ml.linalg.{DenseVector, Vector}
 import org.apache.spark.sql._
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.{FloatType, IntegerType, StructField}
+import org.apache.spark.sql.types.{DoubleType, FloatType, IntegerType, StructField}
 import org.yaml.snakeyaml.Yaml
 import java.io.{File, FileInputStream}
 
 import com.test.spark.params.ReadParam
+import org.apache.spark.sql.functions.col
 
 import scala.util.parsing.json
 object Train {
@@ -22,11 +23,23 @@ object Train {
 
     val spark = SparkEnv.getSession
 
-    val train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).na.fill(missing)
-    val test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true")).na.fill(missing)
+    var train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).na.fill(missing).repartition(xgb_params.get("nworkers").get.toString.toInt)
+    var test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true")).na.fill(missing).repartition(xgb_params.get("nworkers").get.toString.toInt)
     val fl = Utils.read(train_params.whitelist_path).select("feature_name").collect().map(line=>Utils.tsCols(line(0).toString))
-    for(featurename<-fl){
-
+    var needts = false
+    val tscols = train.dtypes.map(s=>{
+      if(s._1 == "label")
+        col(s._1).cast(IntegerType)
+      else if ((s._2 == "StringType") && (fl.contains(s._1))){
+        needts = true
+        col(s._1).cast(DoubleType)
+      }
+      else
+        col(s._1)
+    })
+    if(needts) {
+      train = train.select(tscols: _*)
+      test = test.select(tscols: _*)
     }
     val keys = train_params.key.split(" ")
     val vectorAssembler = new VectorAssembler().
