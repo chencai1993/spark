@@ -23,8 +23,8 @@ object Train {
 
     val spark = SparkEnv.getSession
 
-    var train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).na.fill(missing).repartition(xgb_params.get("nworkers").get.toString.toInt)
-    var test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true")).na.fill(missing).repartition(xgb_params.get("nworkers").get.toString.toInt)
+    var train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
+    var test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
     val fl = Utils.read(train_params.whitelist_path).select("feature_name").collect().map(line=>Utils.tsCols(line(0).toString))
     var needts = false
     val tscols = train.dtypes.map(s=>{
@@ -41,6 +41,8 @@ object Train {
       train = train.select(tscols: _*)
       test = test.select(tscols: _*)
     }
+    train = train.na.fill(missing)
+    test = test.na.fill(missing)
     val keys = train_params.key.split(" ")
     val vectorAssembler = new VectorAssembler().
       setInputCols(fl).
