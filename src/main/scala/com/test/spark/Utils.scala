@@ -1,6 +1,7 @@
 package com.test.spark
 
 import com.typesafe.config.ConfigFactory
+
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -9,6 +10,7 @@ import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.row_number
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.SizeEstimator
 
 object Utils {
@@ -216,6 +218,18 @@ object Utils {
       rddSize += SizeEstimator.estimate(rows.apply(i).toSeq.map { value => value.asInstanceOf[AnyRef] })
     }
     rddSize
+  }
+  def concat(left:DataFrame,right:DataFrame):DataFrame={
+    val dropcols  = right.columns.filter(line=>left.columns.contains(line))
+    val df2 = right.drop(dropcols:_*)
+    val df1 = left
+    var schema = StructType(df1.schema.toList ++ df2.schema.toList)
+    var data = df1.rdd.zip(df2.rdd).map(line=>Row.fromSeq(line._1.toSeq ++ line._2.toSeq))
+    var res = SparkEnv.getSession.createDataFrame(data,schema)
+    res
+  }
+  def readFeatureList(path:String):Array[String]={
+    Utils.read(path).select("feature_name").collect().map(line=>line(0).toString)
   }
 
   def main(args: Array[String]): Unit = {
