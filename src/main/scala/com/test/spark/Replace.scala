@@ -22,7 +22,7 @@ object Replace {
         }
         )
       else
-        t = t.map(line=>line.toString.split("\t",0).map(col=>if(oldstr.contains(col))newstr else col).mkString("\t"))
+        t = t.map(line=>line.toString.split("\t",0).map(col=>if(oldstr.contains(col.toString))newstr else col).mkString("\t"))
       val out = input(i)+"_r"
       Utils.hdfs_delete(out)
       t.saveAsTextFile(out)

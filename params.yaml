@@ -1,0 +1,39 @@
+xgboost: {
+      eta: 0.1,
+      max_depth: 3,
+      gamma: 0.0,
+      lambda: 1.0,
+      alpha: 0.0,
+      colsample_bylevel: 1,
+      objective: "binary:logistic",
+      min_child_weight: 100,
+      booster: "gbtree",
+      subsample: 0.9,
+      nworkers: 1,
+      eval_metric: "auc",
+      num_round: 100,
+      numEarlyStoppingRounds: 100,
+      use_external_memory: true,
+      checkpointInterval: 20000,
+      checkpoint_path: "/user/chencai/yn/checkpoint",
+      checkpointInitialization: true,
+      trainTestRatio: 0.9,
+      scale_pos_weight: 1.0,
+      colsample_bytree: 0.9,
+      missing: -999.0,
+}
+
+train: {
+    train_path: "train",
+    test_path: "test",
+    whitelist_path: "featurelist", #白名单-入模特征
+    hdfs_model_path: "/user/chencai/yntest1213/test4/hdfs.model",  #hdfs模型存储路径
+    local_model_path: "model",  #本地模型存储路径
+    local_model_feature_path: "fealist", #本地模型特征存储路径
+    local_model_feature_weights_path: "weight.im",  #特征重要性文件本地存储路径
+    local_quantiles_path: "local_src_quantiles.txt",  #训练集模型score分位点
+    train_res_path: "/user/chencai/yntest1213/test4/train-res",  #训练数据预测结果 四元组+label+score
+    test_res_path: "test-res",  #测试数据预测结果 四元组+label+score
+    key: "name idcard phone loan_dt label",
+    cv_num: 2
+}

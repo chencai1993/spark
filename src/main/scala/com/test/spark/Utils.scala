@@ -16,7 +16,7 @@ import org.apache.spark.util.SizeEstimator
 object Utils {
 
   def hdfs_delete(path:String):Unit={
-    if(path.contains("/user/chencai/")==false)
+    if(path.split("/").length<2) // 避免从删库到跑路
       return
     var sc = SparkEnv.getSc
     val hadoopConf = sc.hadoopConfiguration
@@ -29,7 +29,7 @@ object Utils {
     }
   }
   def hdfs_rename(oldpath:String,newpath:String):Unit={
-    if(newpath.contains("/user/chencai/")==false)
+    if(newpath.split("/").length<2) // 避免从删库到跑路
       return
     var sc = SparkEnv.getSc
     val hadoopConf = sc.hadoopConfiguration

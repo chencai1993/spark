@@ -4,6 +4,8 @@
     <root id="archive" name="spark.jar">
       <element id="module-output" name="spark" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/yaml/snakeyaml/1.24/snakeyaml-1.24.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/ml/dmlc/xgboost4j/0.72/xgboost4j-0.72.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/ml/dmlc/xgboost4j-spark/0.72/xgboost4j-spark-0.72.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>
