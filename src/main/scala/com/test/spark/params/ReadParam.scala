@@ -38,15 +38,15 @@ class ReadParam(param_path: String) {
             "min_child_weight" -> params.xgboost.min_child_weight,
             "booster" -> params.xgboost.booster,
             "subsample" -> params.xgboost.subsample,
-            "nworkers" -> params.xgboost.nworkers,
+            "num_workers" -> params.xgboost.num_workers,
             "eval_metric" -> params.xgboost.eval_metric,
             "num_round" -> params.xgboost.num_round,
-            "numEarlyStoppingRounds" -> params.xgboost.numEarlyStoppingRounds,
+            "num_early_stopping_rounds" -> params.xgboost.num_early_stopping_rounds,
             "use_external_memory" -> params.xgboost.use_external_memory,
-            "checkpointInterval" -> params.xgboost.checkpointInterval,
+            "checkpoint_interval" -> params.xgboost.checkpoint_interval,
             "checkpoint_path" -> params.xgboost.checkpoint_path,
-            "checkpointInitialization" -> params.xgboost.checkpointInitialization,
-            "trainTestRatio" -> params.xgboost.trainTestRatio
+            "checkpoint_initialization" -> params.xgboost.checkpoint_initialization,
+            "train_test_ratio" -> params.xgboost.train_test_ratio
         )
         (params.train, xgb_params_map, params.xgboost.missing, params.xgboost.importance_type)
     }

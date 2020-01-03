@@ -38,8 +38,8 @@ object Train {
     val param_handle = new ReadParam(args(0))
     val (train_params, xgb_params, missing, types) = param_handle.readHandle
     val spark = SparkEnv.getSession
-    var train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
-    var test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
+    var train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true"))
+    var test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true"))
     val fl = Utils.read(train_params.whitelist_path).select("feature_name").collect().map(line=>Utils.tsCols(line(0).toString))
     train = String2Double(train,fl)
     test = String2Double(test,fl)
@@ -57,6 +57,7 @@ object Train {
       setLabelCol("label")
       .setPredictionCol("score")
       .setEvalSets(Map("test"->xgb_input_test))
+    println(xgbClassifier.extractParamMap())
     val xgbModel = xgbClassifier.fit(xgb_input_train)
     println("模型训练完成")
     xgbModel.nativeBooster.saveModel(train_params.local_model_path)
