@@ -1,6 +1,5 @@
 package com.test.spark
 import org.apache.spark.ml.feature.VectorAssembler
-import ml.dmlc.xgboost4j.scala.spark.{XGBoostEstimator, XGBoostModel}
 import com.typesafe.config.ConfigFactory
 import org.apache.arrow.vector.types.pojo.ArrowType.Struct
 import org.apache.spark.ml.linalg.{DenseVector, Vector}
@@ -9,25 +8,18 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{DoubleType, FloatType, IntegerType, StructField}
 import org.yaml.snakeyaml.Yaml
 import java.io.{File, FileInputStream}
-
+import org.apache.spark.sql.functions.udf
+import Array._
 import com.test.spark.params.ReadParam
+import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier
 import org.apache.spark.sql.functions.col
 
 import scala.util.parsing.json
 object Train {
 
-  def main(args: Array[String]): Unit = {
-
-    val param_handle = new ReadParam(args(0))
-    val (train_params, xgb_params, missing, types) = param_handle.readHandle
-
-    val spark = SparkEnv.getSession
-
-    var train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
-    var test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
-    val fl = Utils.read(train_params.whitelist_path).select("feature_name").collect().map(line=>Utils.tsCols(line(0).toString))
+  def String2Double(df:DataFrame,fl:Array[String]):DataFrame={
     var needts = false
-    val tscols = train.dtypes.map(s=>{
+    val tscols = df.dtypes.map(s=>{
       if(s._1 == "label")
         col(s._1).cast(IntegerType)
       else if ((s._2 == "StringType") && (fl.contains(s._1))){
@@ -37,37 +29,45 @@ object Train {
       else
         col(s._1)
     })
-    if(needts) {
-      train = train.select(tscols: _*)
-      test = test.select(tscols: _*)
-    }
+    if(needts)
+      df.select(tscols: _*)
+    else
+      df
+  }
+  def main(args: Array[String]): Unit = {
+
+    val param_handle = new ReadParam("params.yaml")
+    val (train_params, xgb_params, missing, types) = param_handle.readHandle
+    val spark = SparkEnv.getSession
+    var train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
+    var test = Utils.tsCols(Utils.read(train_params.test_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
+    val fl = Utils.read(train_params.whitelist_path).select("feature_name").collect().map(line=>Utils.tsCols(line(0).toString))
+    train = String2Double(train,fl)
+    test = String2Double(test,fl)
     train = train.na.fill(missing)
     test = test.na.fill(missing)
     val keys = train_params.key.split(" ")
     val vectorAssembler = new VectorAssembler().
       setInputCols(fl).
       setOutputCol("features")
-    val xgb_input_train = vectorAssembler.transform(train).select("features", "label")
-    val xgb_input_test = vectorAssembler.transform(test).select("features", "label")
-
-    val xgbClassifier = new XGBoostEstimator(xgb_params).
+    var out_cols= Array("features") ++ keys
+    val xgb_input_train = vectorAssembler.transform(train).select(out_cols.head,out_cols.tail:_*)
+    val xgb_input_test = vectorAssembler.transform(test).select(out_cols.head,out_cols.tail:_*)
+    val xgbClassifier = new XGBoostClassifier(xgb_params).
       setFeaturesCol("features").
       setLabelCol("label")
       .setPredictionCol("score")
+      .setEvalSets(Map("test"->xgb_input_test))
     val xgbModel = xgbClassifier.fit(xgb_input_train)
     println("模型训练完成")
-    val test_data = xgb_input_test.rdd.map(r => new DenseVector(r.getAs[Vector]("features").toArray))
-    val score = xgbModel.predict(test_data,missing)
-
-    val test_key = test.select(keys.head,keys.tail:_*)
-    val schema = test_key.schema.add(StructField("score", FloatType, nullable = true))
-    val test_res = test_key.rdd.zip(score).map(line=>Row.fromSeq(line._1.toSeq ++ line._2.toSeq))
-    val df = spark.createDataFrame(test_res,schema)
-    Utils.write(df,train_params.test_res_path)
-
-    val ks  = KS.KS(df.select("score","label").rdd.map(line=>(line(0),line(1))).collect())
+    xgbModel.nativeBooster.saveModel(train_params.local_model_path)
+    val test_data = xgbModel.transform(xgb_input_test)
+    val get_score = udf((v:DenseVector)=>v(1))
+    out_cols=keys ++ Array("probability")
+    val score = test_data.select(out_cols.head,out_cols.tail:_*).withColumn("probability",get_score(col("probability")))
+    Utils.write(score,train_params.test_res_path)
+    val ks  = KS.KS(score.select("probability","label").rdd.map(line=>(line(0),line(1))).collect())
     println(ks._1*100)
-
 
   }
 

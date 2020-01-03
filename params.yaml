@@ -28,7 +28,7 @@ train: {
     test_path: "test",
     whitelist_path: "featurelist", #白名单-入模特征
     hdfs_model_path: "/user/chencai/yntest1213/test4/hdfs.model",  #hdfs模型存储路径
-    local_model_path: "model",  #本地模型存储路径
+    local_model_path: "model_1",  #本地模型存储路径
     local_model_feature_path: "fealist", #本地模型特征存储路径
     local_model_feature_weights_path: "weight.im",  #特征重要性文件本地存储路径
     local_quantiles_path: "local_src_quantiles.txt",  #训练集模型score分位点

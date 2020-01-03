@@ -92,12 +92,12 @@
     <dependency>
       <groupId>ml.dmlc</groupId>
       <artifactId>xgboost4j-spark</artifactId>
-      <version>0.72</version>
+      <version>0.82</version>
     </dependency>
     <dependency>
       <groupId>ml.dmlc</groupId>
       <artifactId>xgboost4j</artifactId>
-      <version>0.72</version>
+      <version>0.82</version>
     </dependency>
     <dependency>
       <groupId>com.typesafe</groupId>
