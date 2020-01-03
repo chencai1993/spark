@@ -35,8 +35,7 @@ object Train {
       df
   }
   def main(args: Array[String]): Unit = {
-
-    val param_handle = new ReadParam("params.yaml")
+    val param_handle = new ReadParam(args(0))
     val (train_params, xgb_params, missing, types) = param_handle.readHandle
     val spark = SparkEnv.getSession
     var train = Utils.tsCols(Utils.read(train_params.train_path,inferSchema = "true")).repartition(xgb_params.get("nworkers").get.toString.toInt)
