@@ -1,17 +1,18 @@
 package com.test.spark
 
 import com.typesafe.config.ConfigFactory
-
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
+import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.row_number
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{DoubleType, StructField, StructType}
 import org.apache.spark.util.SizeEstimator
+import org.apache.spark.sql.types._
 
 object Utils {
 
@@ -228,14 +229,24 @@ object Utils {
     var res = SparkEnv.getSession.createDataFrame(data,schema)
     res
   }
+  def vectorTransformer(df:DataFrame,inputCols:Array[String],outputcol:String,drop_feature:Boolean=true):DataFrame={
+    val spark = SparkEnv.getSqc
+    val features = df.select(inputCols.head,inputCols.tail:_*).rdd.map(line=>
+        (
+          new DenseVector(line.toSeq.toArray.map(_.asInstanceOf[Double]))
+        )
+    )
+    val features_df = spark.createDataFrame(features,DenseVector.getClass)
+    var old_df = df
+    if(drop_feature)
+      old_df = old_df.drop(inputCols:_*)
+    concat(old_df,features_df)
+  }
   def readFeatureList(path:String):Array[String]={
     Utils.read(path).select("feature_name").collect().map(line=>line(0).toString)
   }
-
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.load("params.yaml")
     println(config)
   }
-
-
 }
