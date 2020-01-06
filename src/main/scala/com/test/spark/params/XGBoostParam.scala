@@ -1,7 +1,8 @@
 package com.test.spark.params
 
 import scala.beans.BeanProperty
-
+import scala.collection.mutable.Map
+import scala.reflect.runtime.{universe => ru}
 class XGBoostParam {
     @BeanProperty var eta: Double = 0.3
     @BeanProperty var max_depth: Int = 3
@@ -14,7 +15,9 @@ class XGBoostParam {
     @BeanProperty var booster: String = "gbtree"
     @BeanProperty var subsample: Double = 0.8
     @BeanProperty var num_workers: Int = 200
+    @BeanProperty var tree_method = "exact"
     @BeanProperty var eval_metric: String = "auc"
+    @BeanProperty var maximize_evaluation_metrics = true
     @BeanProperty var num_round: Int = 1000
     @BeanProperty var num_early_stopping_rounds: Int = 50
     @BeanProperty var use_external_memory: Boolean = true

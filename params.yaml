@@ -1,5 +1,4 @@
-{
-  xgboost: {
+xgboost: {
     eta: 0.05,
     max_depth: 3,
     gamma: 0.0,
@@ -12,18 +11,19 @@
     subsample: 0.9,
     num_workers: 1,
     eval_metric: "auc",
-    num_round: 1000,
-    num_Early_Stopping_Rounds: 100,
+    maximize_evaluation_metrics: true,
+    num_round: 50,
+    num_early_stopping_rounds: 100,
     use_external_memory: true,
-    checkpoint_Interval: 20000,
+    checkpoint_interval: 20000,
     checkpoint_path: "/user/chencai/yn/checkpoint",
+    tree_method: "auto",
     train_test_ratio: 0.9,
     scale_pos_weight: 1.0,
     colsample_bytree: 0.9,
     missing: -999.0,
   }
-
-  train: {
+train: {
     train_path: "train",
     test_path: "test",
     whitelist_path: "fealist", #白名单-入模特征
@@ -37,4 +37,4 @@
     key: "name idcard phone loan_dt label",
     cv_num: 2
   }
-}
+
