@@ -10,6 +10,7 @@ object SparkEnv{
 
   private val sc: SparkContext = SparkEnv.getSession.sparkContext
 
+
   private val sqc: SQLContext = SparkEnv.getSession.sqlContext
 
   def getConf: SparkConf = this.conf

@@ -61,7 +61,7 @@ object Utils {
     else
       df
   }
-  def tsCols(cols:Array[String],oldc:String="",newc:String=""): Array[String] ={
+  def tsCols(cols:Array[String],oldc:String=".",newc:String="#"): Array[String] ={
     var newcols:Array[String]=new Array[String](cols.length)
     for(i<-cols.indices){
       newcols(i)=cols(i).replace(oldc,newc)

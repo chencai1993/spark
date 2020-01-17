@@ -2,7 +2,7 @@ package com.test.spark
 import org.apache.spark.ml.feature.VectorAssembler
 import com.typesafe.config.ConfigFactory
 import org.apache.arrow.vector.types.pojo.ArrowType.Struct
-import org.apache.spark.ml.linalg.{DenseVector, Vector,SparseVector}
+import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
 import org.apache.spark.sql._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{DoubleType, FloatType, IntegerType, StructField}
