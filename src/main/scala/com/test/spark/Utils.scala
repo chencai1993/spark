@@ -195,7 +195,7 @@ object Utils {
     res
   }
 
-  val formatLoan_dt = udf((loan_dt:String) => loan_dt.substring(0, 10))
+  val formatLoan_dt = udf((loan_dt:String) => if (loan_dt==null) null else loan_dt.toString.substring(0, 10))
 
   def getTotalSize(rdd: RDD[Row]): Long = {
     // This can be a parameter
