@@ -80,9 +80,9 @@ object Utils {
   def rtsCols(df:DataFrame):DataFrame={
     rename(df,tsCols(df.columns,"#","."))
   }
-  def read(path:String,delimiter:String="\t",inferSchema:String="false"):DataFrame={
+  def read(path:String,delimiter:String="\t",inferSchema:String="false",header:Boolean=true):DataFrame={
     val spark = SparkEnv.getSession
-    return read(spark,path,delimiter=delimiter,inferSchema=inferSchema)
+    return read(spark,path,delimiter=delimiter,inferSchema=inferSchema,header=header)
   }
   def distict(df:DataFrame,cols:List[String]):DataFrame={
     distict(df,cols.toArray)
@@ -107,8 +107,8 @@ object Utils {
   }
 
 
-  def read(spark:SparkSession,path:String,delimiter:String,inferSchema:String):DataFrame={
-    var df = spark.read.option("delimiter",delimiter).option("header",true).option("inferSchema", inferSchema).option("maxColumns",50000).csv(path=path)
+  def read(spark:SparkSession,path:String,delimiter:String,inferSchema:String,header:Boolean):DataFrame={
+    var df = spark.read.option("delimiter",delimiter).option("header",header).option("inferSchema", inferSchema).option("maxColumns",50000).csv(path=path)
     println("rdd partions :"+df.rdd.partitions.length)
     if(df.columns.contains("loan_dt")){
       df=df.withColumn("loan_dt",Utils.formatLoan_dt(df("loan_dt")))
@@ -144,7 +144,7 @@ object Utils {
     (leftDf.columns.toSet & rightDf.columns.toSet).toList
   }
   def commonColsNoName(leftDf: DataFrame, rightDf: DataFrame):List[String]={
-    ((leftDf.columns.toSet & rightDf.columns.toSet) &~ Set("name","idcard","phone","loan_dt","label","uniq_id")).toList
+    ((leftDf.columns.toSet & rightDf.columns.toSet) &~ Set("name","idcard","phone","loan_dt","label","uniq_id","user_id","order_no","request_id","create_time","loan_date")).toList
   }
   def join(leftDf: DataFrame, rightDf: DataFrame,on: List[String]=List[String](),joinType:String="inner"): DataFrame = {
     val usingCols = if(on.nonEmpty) on else commonCols(leftDf, rightDf)

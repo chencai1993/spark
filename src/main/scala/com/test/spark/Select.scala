@@ -14,6 +14,8 @@ object Select {
       val featurelist = ps.get("featurelist").get(0)
       val fealistdf = Utils.read(featurelist)
       var fl = fealistdf.select("feature_name").collect().toArray.map(line => line(0).toString)
+      if(ps.contains("keys"))
+        fl = ps.get("keys").get.toArray ++ fl
       fl = Utils.tsCols(fl, ".", "#")
       df = Utils.tsCols(df)
       if(ps.contains("common")){
