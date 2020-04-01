@@ -11,9 +11,10 @@ object Merge {
     var filepathlist =  ps.get("input").get
     val replace = ps.contains("replace") || ps.contains("r")
     var filelist = filepathlist.map(line=>Utils.read(line))
-    if(replace){
-      filelist = filelist.map(line=>Utils.tsCols(line))
-    }
+    var featurelist = Array[String]()
+    if(ps.contains("featurelist"))
+      featurelist = Utils.tsCols(Utils.readFeatureList(ps.get("featurelist").get(0)))
+    filelist = filelist.map(line=>Utils.tsCols(line))
     if(ps.contains("repartions")){
       val repartions = ps.get("repartions").get(0).toInt
       filelist = filelist.map(line=>line.repartition(repartions))
@@ -29,6 +30,8 @@ object Merge {
           }
         res = Utils.join(res,f,List(),joinType)
     }
+    if(featurelist.length!=0)
+      res = res.select(featurelist.head,featurelist.tail:_*)
     res = Utils.rtsCols(res)
     Utils.write(res,out)
   }

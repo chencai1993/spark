@@ -5,7 +5,7 @@ object Select {
     val ps = Utils.getPs(args)
 
     val input = ps.get("input").get(0)
-    val out = ps.get("out").get(0)
+    val out = ps.getOrElse("out",List(input))(0)
     var df = Utils.read(input)
     if(ps.contains("repartions")){
       df = df.repartition(ps.get("repartions").get(0).toString.toInt)
@@ -47,7 +47,12 @@ object Select {
       featurelist.foreach(println)
       df = Utils.distict(df,featurelist)
     }
-    Utils.write(df,out)
+    if(ps.contains("cover")){ // 是否覆盖原文件
+      Utils.write(df,input+"_r")
+      Utils.hdfs_rename(input+"_r",input)
+    }
+    else
+      Utils.write(df,out)
   }
 
 }

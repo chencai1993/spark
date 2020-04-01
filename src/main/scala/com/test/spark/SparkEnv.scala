@@ -6,7 +6,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 object SparkEnv{
 
   private val conf = new SparkConf()//.set("spark.executor.cores","2").setMaster("local")
-  private val session = SparkSession.builder().appName("ferry-spark").config(this.conf).getOrCreate()
+  private val session = SparkSession.builder().appName("ferry_szjr").config(this.conf).getOrCreate()
 
   private val sc: SparkContext = SparkEnv.getSession.sparkContext
 
