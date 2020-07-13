@@ -7,7 +7,7 @@
   <properties>
     <java.target.version>1.8</java.target.version>
     <java.source.version>1.8</java.source.version>
-    <scala.version>2.11.8</scala.version>
+    <scala.version>2.13.3</scala.version>
     <scala.source.version>2.11</scala.source.version>
     <scala.target.version>2.11</scala.target.version>
     <!--<scope.provided>provided</scope.provided>-->
