@@ -11,7 +11,7 @@
     <scala.source.version>2.11</scala.source.version>
     <scala.target.version>2.11</scala.target.version>
     <!--<scope.provided>provided</scope.provided>-->
-    <spark.version>2.3.0</spark.version>
+    <spark.version>2.4.8</spark.version>
   </properties>
 
   <repositories>
